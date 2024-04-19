@@ -1,0 +1,75 @@
+LUKS on a partition
+This example covers a full system encryption with dm-crypt + LUKS in a simple partition layout:
+
++-----------------------+------------------------+-----------------------+
+| Boot partition        | LUKS2 encrypted root   | Optional free space   |
+|                       | partition              | for additional        |
+|                       |                        | partitions to be set  |
+| /boot                 | /                      | up later              |
+|                       |                        |                       |
+|                       | /dev/mapper/root       |                       |
+|                       |------------------------|                       |
+| /dev/sda1             | /dev/sda2              |                       |
++-----------------------+------------------------+-----------------------+
+The first steps can be performed directly after booting the Arch Linux install image.
+
+Preparing the disk
+Prior to creating any partitions, you should inform yourself about the importance and methods to securely erase the disk, described in dm-crypt/Drive preparation.
+
+Then create the needed partitions, at least one for / (e.g. /dev/sda2) and /boot (/dev/sda1). See Partitioning.
+
+Preparing non-boot partitions
+This and the next section replace the instructions of Installation guide#Format the partitions.
+
+The following commands create and mount the encrypted root partition. They correspond to the procedure described in detail in dm-crypt/Encrypting a non-root file system#Partition (which, despite the title, can be applied to root partitions, as long as mkinitcpio and the boot loader are correctly configured). If you want to use particular non-default encryption options (e.g. cipher, key length), see the encryption options before executing the first command. For information on changing the default sector size, see dm-crypt/Device encryption#Sector size.
+
+# cryptsetup -y -v luksFormat /dev/sda2
+# cryptsetup open /dev/sda2 root
+# mkfs.ext4 /dev/mapper/root
+# mount /dev/mapper/root /mnt
+Check the mapping works as intended:
+
+# umount /mnt
+# cryptsetup close root
+# cryptsetup open /dev/sda2 root
+# mount /dev/mapper/root /mnt
+If you created separate partitions (e.g. /home), these steps have to be adapted and repeated for all of them, except for /boot. See dm-crypt/Encrypting a non-root file system#Automated unlocking and mounting on how to handle additional partitions at boot.
+
+Note that each block device requires its own passphrase. This may be inconvenient, because it results in a separate passphrase to be input during boot. An alternative is to use a keyfile stored in the root partition to unlock the separate partition via crypttab. See dm-crypt/Device encryption#Using LUKS to format partitions with a keyfile for instructions.
+
+Preparing the boot partition
+What you do have to setup is a non-encrypted /boot partition, which is needed for an encrypted root. For an ordinary boot partition on BIOS systems, for example, execute:
+
+# mkfs.ext4 /dev/sda1
+or for an EFI system partition on UEFI systems:
+
+# mkfs.fat -F32 /dev/sda1
+Afterwards create the directory for the mountpoint and mount the partition:
+
+# mount --mkdir /dev/sda1 /mnt/boot
+Mounting the devices
+At Installation guide#Mount the file systems you will have to mount the mapped devices, not the actual partitions. Of course /boot, which is not encrypted, will still have to be mounted directly. It should be mounted at /mnt.
+
+Configuring mkinitcpio
+Before following Installation guide#Initramfs you must do the following to your new system:
+
+If using the default busybox-based initramfs, add the keyboard and encrypt hooks to mkinitcpio.conf. If you use a non-US console keymap or a non-default console font, additionally add the keymap and consolefont hooks, respectively.
+
+HOOKS=(base udev autodetect microcode modconf kms keyboard keymap consolefont block encrypt filesystems fsck)
+If using a systemd-based initramfs, instead add the keyboard and sd-encrypt hooks. If you use a non-US console keymap or a non-default console font, additionally add the sd-vconsole hook.
+
+HOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck)
+Regenerate the initramfs after saving the changes. See dm-crypt/System configuration#mkinitcpio for details and other hooks that you may need.
+
+Configuring the boot loader
+In order to unlock the encrypted root partition at boot, the following kernel parameters need to be set by the boot loader:
+
+cryptdevice=UUID=device-UUID:root root=/dev/mapper/root
+If using the sd-encrypt hook, the following need to be set instead:
+
+rd.luks.name=device-UUID=root root=/dev/mapper/root
+The device-UUID refers to the UUID of the LUKS superblock, in this example it is the UUID of /dev/sda2. See Persistent block device naming for details.
+
+Also see dm-crypt/System configuration#Kernel parameters for more details.
+
+Tip: If the root partition is on the same disk as the /boot partition and your UEFI boot loader supports GPT partition automounting, you can configure the partition type GUID (type should be "Root partition", not "LUKS partition") and rely on systemd-gpt-auto-generator(8) instead of using the kernel parameters.
