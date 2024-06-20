@@ -1,8 +1,10 @@
 # xi
+```
 __ __ ___ ___ ___ _____ _
 \ \ /(_-</ _ `/ // / _ `/
 /_\_\/___/\_,_/\_, /\_,_/
- 󰦕   サ   ガ  /___/          
+ 󰦕   サ   ガ  /___/   
+ ```
 
 xsaya installation helper for arch linux (personal installation guide).
 
