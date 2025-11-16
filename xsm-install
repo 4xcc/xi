@@ -1,8 +1,8 @@
 #!/bin/bash
-#__ __ ___ ___ ___ _____ _
-#\ \ /(_-</ _ `/ // / _ `/  XSM post installation script
-#/_\_\/___/\_,_/\_, /\_,_/  optional dependency : xclip
-# 󰦕   サ   ガ  /___/                     /xsaya
+#
+# XSM post installation script
+# optional dependency : xclip
+#              /xcc
 
 sudo pacman -S --needed gnupg git stow
 echo "decrypting..."
@@ -21,9 +21,9 @@ read
 
 cd
 #git clone https://github.com/vsaya/dotfiles # deprecated name
-git clone https://"$token"@github.com/4xcc/dotfiles.git xc || exit
+git clone https://"$token"@github.com/4xcc/dotfiles.git .xc || exit
 echo "deploying configuration."
-cd xc
+cd .xc
 stow *
 echo "configuration stowed."
 cd .stow-local-ignore/
